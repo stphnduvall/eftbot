@@ -2,6 +2,7 @@ import time
 import pyautogui
 import cv2 as cv
 import numpy as np
+import win32gui, win32ui, win32con
 
 
 def find_item(item):
@@ -34,7 +35,53 @@ def click_all(points):
         time.sleep(.5)
 
 
+def windowCapture():
+    w = 1600
+    h = 900
+
+    window = win32gui.FindWindow(None, 'EscapeFromTarkov')
+    # window = None
+
+    # Get the window image data
+    window_dc = win32gui.GetWindowDC(window)
+    dc_object = win32ui.CreateDCFromHandle(window_dc)
+    cDC = dc_object.CreateCompatibleDC()
+    dataBitMap = win32ui.CreateBitmap()
+    dataBitMap.CreateCompatibleBitmap(dc_object, w, h)
+    cDC.SelectObject(dataBitMap)
+    cDC.BitBlt((0,0), (w, h), dc_object, (0, 0), win32con.SRCCOPY)
+
+    # Save the screenshot (For debugging)
+    # dataBitMap.SaveBitmapFile(cDC, 'debug.bmp')
+    signedIntsArray = dataBitMap.GetBitmapBits(True)
+    img = np.fromstring(signedIntsArray, dtype='uint8')
+    img.shape = (h, w, 4)
+
+    dc_object.DeleteDC()
+    cDC.DeleteDC()
+    win32gui.ReleaseDC(window, window_dc)
+    win32gui.DeleteObject(dataBitMap.GetHandle())
+
+    return img
+
+
+def main():
+    loop_time = 0
+    while True:
+        # screenshot = ImageGrab.grab()
+        screenshot = windowCapture()
+
+        cv.imshow('frame', screenshot)
+
+        if cv.waitKey(1) == ord('q'):
+            break
+
+        print(f'FPS: { 1 / (time.time() - loop_time)}')
+
+        loop_time = time.time()
+
+    cv.destroyAllWindows()
+
+
 if __name__ == '__main__':
-    salewa = cv.imread('./images/salewa.png', 0)
-    click_all(find_item(salewa))
-    # print(f"{point[0]}, {point[1]}")
+    main()
